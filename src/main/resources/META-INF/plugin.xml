@@ -5,9 +5,19 @@
     <vendor>shebangdog</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends> com.intellij.modules.ultimate </depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.shebangdog.onewaygenerator.services.MyApplicationService"/>
+        <codeInsight.template.postfixTemplateProvider
+                language="JavaScript"
+                implementationClass="com.github.shebangdog.onewaygenerator.services.JavaScriptPostfixTemplateProvider" />
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+                serviceImplementation="com.github.shebangdog.onewaygenerator.services.MyApplicationService"/>
         <projectService serviceImplementation="com.github.shebangdog.onewaygenerator.services.MyProjectService"/>
     </extensions>
 
