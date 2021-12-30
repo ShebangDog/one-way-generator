@@ -75,7 +75,7 @@ class JavaScriptPostfixTemplate(
 
         val handlerDeclaration = """
             const $handlerName = (event) => {
-              $setValueName(event.target.$valueName)
+              $setValueName(event.target.value)
             }
             
         """.trimIndent()

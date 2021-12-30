@@ -1,3 +1,5 @@
+console.log("loaded")
+
 const initialValue = ""
 const useState = (argument) => {
 
@@ -20,4 +22,6 @@ const handleChange1 = (event) => {
 }
 
 const bindInput1 = <input value={value1} onChange={handleChange1} />
+
+
 
