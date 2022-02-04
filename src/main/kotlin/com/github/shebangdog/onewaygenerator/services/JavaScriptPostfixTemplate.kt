@@ -60,7 +60,7 @@ class JavaScriptPostfixTemplate(
         val valueElemName = "value"
         val setValueElemName = "setValue"
         val handleChangeElemName = "handleChange"
-        val componentElemName = "bindInput"
+        val componentElemName = "BindInput"
 
         val valueName = "${valueElemName}${countAsString(valueElemName)}"
         val setValueName = "${setValueElemName}${countAsString(setValueElemName)}"
@@ -81,7 +81,7 @@ class JavaScriptPostfixTemplate(
         """.trimIndent()
 
         val inputExpression = """
-            const $componentName = <input value={${valueName}} onChange={${handlerName}} />
+            const $componentName = () => <input value={${valueName}} onChange={${handlerName}} />
         """.trimIndent()
 
         val generatedCode = listOf(
