@@ -14,15 +14,4 @@
                 language="JavaScript"
                 implementationClass="com.github.shebangdog.onewaygenerator.services.JavaScriptPostfixTemplateProvider" />
     </extensions>
-
-    <extensions defaultExtensionNs="com.intellij">
-        <applicationService
-                serviceImplementation="com.github.shebangdog.onewaygenerator.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.shebangdog.onewaygenerator.services.MyProjectService"/>
-    </extensions>
-
-    <applicationListeners>
-        <listener class="com.github.shebangdog.onewaygenerator.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
 </idea-plugin>

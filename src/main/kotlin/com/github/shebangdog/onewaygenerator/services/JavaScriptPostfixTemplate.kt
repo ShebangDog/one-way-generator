@@ -59,7 +59,14 @@ class JavaScriptPostfixTemplate(
         }
 
         fun valueNameWithCounter(value: String): String {
-            return "$value${getCounter(editor, value)}"
+            val counter = getCounter(editor, value)
+
+            return "$value${
+                when (counter) {
+                    0 -> ""
+                    else -> counter
+                }
+            }"
         }
 
         fun stateDefinition(value: String, setValue: String, feature: String): String {
@@ -70,10 +77,10 @@ class JavaScriptPostfixTemplate(
         val useStateExpr = context.parent?.parent?.text ?: ""
 
         val valueName = "value"
-        val setValueName = "renderUI"
+        val setValueName = "setValue"
         val handlerParamName = "event"
-        val handlerName = "handleChange"
-        val hooksName = "createInputFeature"
+        val handlerName = "onChange"
+        val hooksName = "useInput"
 
         val hooksExpr = "$hooksName($initialValue)"
         val inputtedValue = "$handlerParamName.target.value"
@@ -81,40 +88,45 @@ class JavaScriptPostfixTemplate(
         val currentPrimaryCaret = editor.caretModel.primaryCaret
         deleteStringByLengthFromCaret(currentPrimaryCaret, useStateExpr.length)
 
-        val handlerDefinition = """const $handlerName = ($handlerParamName) => {
-  $setValueName($inputtedValue)
-}"""
+        val handlerDefinition = """function $handlerName($handlerParamName) {
+            $setValueName($inputtedValue)
+        }"""
 
-        val inputHooksDefinition = """const $hooksName = (initialValue) => {
-  ${stateDefinition(valueName, setValueName, useStateExpr)}
+        val inputHooksDefinition = """function $hooksName(initialValue) {
+            ${stateDefinition(valueName, setValueName, useStateExpr)}
               
-  $handlerDefinition
+            $handlerDefinition
               
-  return [
-    $valueName,
-    $handlerName,
-  ]
-}"""
+            return {
+                $valueName,
+                $handlerName,
+            }
+        }"""
 
         val valueAsValue = valueNameWithCounter(valueName)
         val handlerAsValue = valueNameWithCounter(handlerName)
 
-        val useInputHooksStatement = stateDefinition(
-            valueAsValue,
-            handlerAsValue,
-            hooksExpr
-        ).trimIndent()
+        fun useInputHooksStatement(): String {
+            val declaration =
+                if (valueName == valueAsValue && handlerName == handlerAsValue) "const { ${valueName}, ${handlerName} }"
+                else "const {$valueName: $valueAsValue, $handlerName: $handlerAsValue}"
+
+            return "$declaration= $hooksExpr"
+        }
 
         val inputExpression = "<input value={$valueAsValue} onChange={${handlerAsValue}} />"
 
-        val generatedCode = listOf(useInputHooksStatement, inputExpression)
+        val generatedCode = listOf(useInputHooksStatement(), inputExpression)
             .joinToString("\n") { it.trimIndent() }
 
         val text = editor.document.text
         val importsIndex = text.lastIndexOf("import ")
         val newLineIndex = if (!text.contains("import ")) 0 else text.indexOf("\n", importsIndex)
 
-        if (!isDefined(editor, hooksName)) editor.document.insertString(if (newLineIndex == 0) 0 else newLineIndex + 1, "\n$inputHooksDefinition\n")
+        if (!isDefined(editor, hooksName)) editor.document.insertString(
+            if (newLineIndex == 0) 0 else newLineIndex + 1,
+            "\n$inputHooksDefinition\n"
+        )
         editor.document.insertString(currentPrimaryCaret.offset, generatedCode)
 
         currentPrimaryCaret.moveToOffset(currentPrimaryCaret.offset + generatedCode.length)
