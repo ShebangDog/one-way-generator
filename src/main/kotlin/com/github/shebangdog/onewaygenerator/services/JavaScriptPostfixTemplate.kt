@@ -21,7 +21,7 @@ class JavaScriptPostfixTemplate(
     override fun isApplicable(context: PsiElement, copyDocument: Document, newOffset: Int): Boolean {
         val callExprElement = context.parent.parent
         val textIsUseState = { text: String ->
-            text == "useState"
+            text == "createFeature" || text == "useState"
         }
 
         val elementType = callExprElement.elementType
@@ -29,9 +29,17 @@ class JavaScriptPostfixTemplate(
         return elementType == JSElementTypes.CALL_EXPRESSION && callExprElement.children.any { textIsUseState(it.text) }
     }
 
+    private fun isDefined(editor: Editor, name: String): Boolean {
+        val definition = "const$name"
+        val text = editor.document.text
+        val removedSpacesText = text.filterNot { it.isWhitespace() }
+
+        return removedSpacesText.contains(definition)
+    }
+
     private fun getCounter(editor: Editor, value: String, counter: Int = 0): Int {
         println(editor.document.text)
-        val counterAsString = when(counter) {
+        val counterAsString = when (counter) {
             0 -> ""
             else -> "$counter"
         }
@@ -50,53 +58,83 @@ class JavaScriptPostfixTemplate(
             return editor.document.text
         }
 
-        val countAsString = { value: String ->
-            when (val result = getCounter(editor, value)) {
-                0 -> ""
-                else -> "$result"
-            }
+        fun valueNameWithCounter(value: String): String {
+            val counter = getCounter(editor, value)
+
+            return "$value${
+                when (counter) {
+                    0 -> ""
+                    else -> counter
+                }
+            }"
         }
 
-        val valueElemName = "value"
-        val setValueElemName = "setValue"
-        val handleChangeElemName = "handleChange"
-        val componentElemName = "BindInput"
+        fun stateDefinition(value: String, setValue: String, feature: String): String {
+            return "const [$value, $setValue] = $feature"
+        }
 
-        val valueName = "${valueElemName}${countAsString(valueElemName)}"
-        val setValueName = "${setValueElemName}${countAsString(setValueElemName)}"
-        val handlerName = "${handleChangeElemName}${countAsString(handleChangeElemName)}"
-        val componentName = "${componentElemName}${countAsString(componentElemName)}"
-
+        val initialValue = (context.parent?.text ?: "").drop(1).dropLast(1)
         val useStateExpr = context.parent?.parent?.text ?: ""
-        val contextStatement = "const [$valueName, $setValueName] = $useStateExpr"
+
+        val valueName = "value"
+        val setValueName = "setValue"
+        val handlerParamName = "event"
+        val handlerName = "onChange"
+        val hooksName = "useInput"
+
+        val hooksExpr = "$hooksName($initialValue)"
+        val inputtedValue = "$handlerParamName.target.value"
 
         val currentPrimaryCaret = editor.caretModel.primaryCaret
         deleteStringByLengthFromCaret(currentPrimaryCaret, useStateExpr.length)
 
-        val handlerDeclaration = """
-            const $handlerName = (event) => {
-              $setValueName(event.target.value)
+        val handlerDefinition = """function $handlerName($handlerParamName) {
+            $setValueName($inputtedValue)
+        }"""
+
+        val inputHooksDefinition = """function $hooksName(initialValue) {
+            ${stateDefinition(valueName, setValueName, useStateExpr)}
+              
+            $handlerDefinition
+              
+            return {
+                $valueName,
+                $handlerName,
             }
-            
-        """.trimIndent()
+        }"""
 
-        val inputExpression = """
-            const $componentName = () => <input value={${valueName}} onChange={${handlerName}} />
-        """.trimIndent()
+        val valueAsValue = valueNameWithCounter(valueName)
+        val handlerAsValue = valueNameWithCounter(handlerName)
 
-        val generatedCode = listOf(
-            contextStatement,
-            handlerDeclaration,
-            inputExpression
-        ).joinToString("\n")
+        fun useInputHooksStatement(): String {
+            val declaration =
+                if (valueName == valueAsValue && handlerName == handlerAsValue) "const { ${valueName}, ${handlerName} }"
+                else "const {$valueName: $valueAsValue, $handlerName: $handlerAsValue}"
 
+            return "$declaration= $hooksExpr"
+        }
+
+        val inputExpression = "<input value={$valueAsValue} onChange={${handlerAsValue}} />"
+
+        val generatedCode = listOf(useInputHooksStatement(), inputExpression)
+            .joinToString("\n") { it.trimIndent() }
+
+        val text = editor.document.text
+        val importsIndex = text.lastIndexOf("import ")
+        val newLineIndex = if (!text.contains("import ")) 0 else text.indexOf("\n", importsIndex)
+
+        if (!isDefined(editor, hooksName)) editor.document.insertString(
+            if (newLineIndex == 0) 0 else newLineIndex + 1,
+            "\n$inputHooksDefinition\n"
+        )
         editor.document.insertString(currentPrimaryCaret.offset, generatedCode)
 
         currentPrimaryCaret.moveToOffset(currentPrimaryCaret.offset + generatedCode.length)
-        println(context.parent.reference.toString())
-        println(context.parent.text)
 
-        println(context.parent.parent.reference.toString())
-        println(context.parent.parent.text)
+//        println(context.parent.reference.toString())
+//        println("11111${context.parent.text}")
+//
+//        println(context.parent.parent.reference.toString())
+//        println(context.parent.parent.text)
     }
 }
