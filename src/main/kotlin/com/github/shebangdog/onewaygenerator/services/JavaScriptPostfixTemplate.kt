@@ -80,9 +80,6 @@ class JavaScriptPostfixTemplate(
         val hooksExpr = "$hooksName($initialValue)"
         val inputtedValue = "$handlerParamName.target.value"
 
-        val currentPrimaryCaret = editor.caretModel.primaryCaret
-        deleteStringByLengthFromCaret(currentPrimaryCaret, useStateExpr.length)
-
         val handlerDefinition = """function $handlerName($handlerParamName) {
             $setValueName($inputtedValue)
         }"""
@@ -98,21 +95,22 @@ class JavaScriptPostfixTemplate(
             }
         }"""
 
-        val valueAsValue = valueNameWithCounter(valueName)
-        val handlerAsValue = valueNameWithCounter(handlerName)
-
-        fun useInputHooksStatement(): String {
+        val (valueAsValue, handlerAsValue) = listOf(valueName, handlerName).map { valueNameWithCounter(it) }
+        val useInputHooksStatement = {
             val declaration =
-                if (valueName == valueAsValue && handlerName == handlerAsValue) "const { ${valueName}, ${handlerName} }"
+                if (valueName == valueAsValue && handlerName == handlerAsValue) "const { $valueName, $handlerName }"
                 else "const {$valueName: $valueAsValue, $handlerName: $handlerAsValue}"
 
-            return "$declaration= $hooksExpr"
+            "$declaration= $hooksExpr"
         }
 
         val inputExpression = "<input value={$valueAsValue} onChange={${handlerAsValue}} />"
 
         val generatedCode = listOf(useInputHooksStatement(), inputExpression)
             .joinToString("\n") { it.trimIndent() }
+
+        val currentPrimaryCaret = editor.caretModel.primaryCaret
+        deleteStringByLengthFromCaret(currentPrimaryCaret, useStateExpr.length)
 
         val text = editor.document.text
         val importsIndex = text.lastIndexOf("import ")
