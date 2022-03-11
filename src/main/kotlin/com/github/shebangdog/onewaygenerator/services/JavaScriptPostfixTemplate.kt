@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
+import org.w3c.dom.css.Counter
 
 class JavaScriptPostfixTemplate(
     name: String,
@@ -25,7 +26,6 @@ class JavaScriptPostfixTemplate(
         }
 
         val elementType = callExprElement.elementType
-
         return elementType == JSElementTypes.CALL_EXPRESSION && callExprElement.children.any { textIsUseState(it.text) }
     }
 
@@ -37,14 +37,15 @@ class JavaScriptPostfixTemplate(
         return removedSpacesText.contains(definition)
     }
 
-    private fun getCounter(editor: Editor, value: String, counter: Int = 0): Int {
-        println(editor.document.text)
-        val counterAsString = when (counter) {
+    private fun counterAsString(counter: Int): String {
+        return when (counter) {
             0 -> ""
             else -> "$counter"
         }
+    }
 
-        if (editor.document.text.contains("$value$counterAsString")) {
+    private fun getCounter(editor: Editor, value: String, counter: Int = 0): Int {
+        if (editor.document.text.contains("$value${counterAsString(counter)}")) {
             return getCounter(editor, value, counter + 1)
         }
 
@@ -61,12 +62,7 @@ class JavaScriptPostfixTemplate(
         fun valueNameWithCounter(value: String): String {
             val counter = getCounter(editor, value)
 
-            return "$value${
-                when (counter) {
-                    0 -> ""
-                    else -> counter
-                }
-            }"
+            return "$value${counterAsString(counter)}"
         }
 
         fun stateDefinition(value: String, setValue: String, feature: String): String {
