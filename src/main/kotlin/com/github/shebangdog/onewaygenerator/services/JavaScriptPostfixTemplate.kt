@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import org.w3c.dom.css.Counter
 
 class JavaScriptPostfixTemplate(
     name: String,
@@ -126,11 +125,5 @@ class JavaScriptPostfixTemplate(
         editor.document.insertString(currentPrimaryCaret.offset, generatedCode)
 
         currentPrimaryCaret.moveToOffset(currentPrimaryCaret.offset + generatedCode.length)
-
-//        println(context.parent.reference.toString())
-//        println("11111${context.parent.text}")
-//
-//        println(context.parent.parent.reference.toString())
-//        println(context.parent.parent.text)
     }
 }
